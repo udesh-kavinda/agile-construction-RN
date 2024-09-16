@@ -93,10 +93,18 @@ const PendingList = () => {
   // Function to render a button
   const renderButton = (title, filterValue) => (
     <TouchableOpacity
-      style={styles.button}
+      style={[
+        styles.button,
+        filter.progress === filterValue && styles.activeButton
+      ]}
       onPress={() => setFilter({ ...filter, progress: filterValue })}
     >
-      <Text style={styles.buttonText}>{title}</Text>
+      <Text style={[
+        styles.buttonText,
+        filter.progress === filterValue && styles.activeButtonText
+      ]} numberOfLines={1} ellipsizeMode="tail">
+        {title}
+      </Text>
     </TouchableOpacity>
   );
 
@@ -159,24 +167,33 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between', // Changed from 'space-around'
     paddingVertical: 10,
+    paddingHorizontal: 5, // Added horizontal padding
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
   },
   button: {
-    flex: 1, // Makes all buttons the same width
-    marginHorizontal: 5,
-    backgroundColor: '#007bff',
+    flex: 1,
+    marginHorizontal: 2, // Reduced horizontal margin
+    backgroundColor: '#f0f0f0', // Changed to a light gray
     paddingVertical: 10,
+    paddingHorizontal: 5, // Added horizontal padding
     borderRadius: 5,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   buttonText: {
-    color: '#ffffff',
-    fontSize: 16,
+    color: '#333333', // Changed to dark gray
+    fontSize: 12, // Reduced font size
     fontWeight: 'bold',
+  },
+  activeButton: {
+    backgroundColor: '#007bff', // Blue color for active button
+  },
+  activeButtonText: {
+    color: '#ffffff', // White text for active button
   },
   noDataContainer: {
     flex: 1,
