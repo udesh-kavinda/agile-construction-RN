@@ -99,14 +99,16 @@ const JobView = () => {
 
       try {
         // Prepare FormData
-        const formData: FormData = new FormData();
+        const formData = new FormData();
 
-        // Fetch the image URI and convert it to a Blob
-        const res = await fetch(selectedAsset.uri);
-        const image = await res.blob();
-        const imageName = "photo.jpg"; // Default to 'photo.jpg' if name is missing
+        // Add the image to FormData
+        formData.append("image", {
+          uri: selectedAsset.uri,
+          type: 'image/jpeg',
+          name: 'photo.jpg'
+        });
 
-        formData.append("image", image, imageName);
+        console.log("FormData:", formData);
 
         const response = await axios.put(
           `${API_BASE_URL}/api/employee/job/done/${jobId}`,
@@ -115,8 +117,13 @@ const JobView = () => {
             headers: {
               "Content-Type": "multipart/form-data",
             },
+            transformRequest: (data, headers) => {
+              return formData; // Return the FormData object directly
+            },
           }
         );
+
+        console.log("Response:", response.data);
 
         // Update job status to 'done'
         setJob((prevJob) => ({ ...prevJob, progress: "done" }));
@@ -222,15 +229,16 @@ const JobView = () => {
     );
   };
 
-  const doorQuotation = job.quotation?.doorQuotation;
-  const design = doorQuotation?.design;
+  const quotation = job.quotation?.doorQuotation || job.quotation?.windowsQuotation;
+  const product = job.stockItem?.windows || job.stockItem?.door;
+  const design = quotation?.design;
   const customer = job.quotation?.customer?.user;
   
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        {design?.image ? (
-          <Image source={{ uri: design.image }} style={styles.image} />
+        {(design?.image || product?.image) ? (
+          <Image source={{ uri: design?.image || product?.image }} style={styles.image} />
         ) : (
           <View style={styles.noImageContainer}>
             <Text style={styles.noImageText}>No Image Available</Text>
@@ -260,33 +268,33 @@ const JobView = () => {
         </View>
         <Text style={styles.detail}>{job.qty || 'N/A'}</Text>
 
-        {doorQuotation?.height && (
+        {quotation?.height && (
           <>
             <View style={styles.row}>
               <Icon name="height" size={20} color="#007bff" />
               <Text style={styles.detailLabel}>Height:</Text>
             </View>
-            <Text style={styles.detail}>{doorQuotation.height} mm</Text>
+            <Text style={styles.detail}>{quotation.height} mm</Text>
           </>
         )}
 
-        {doorQuotation?.width && (
+        {quotation?.width && (
           <>
             <View style={styles.row}>
               <Icon name="straighten" size={20} color="#007bff" />
               <Text style={styles.detailLabel}>Width:</Text>
             </View>
-            <Text style={styles.detail}>{doorQuotation.width} mm</Text>
+            <Text style={styles.detail}>{quotation.width} mm</Text>
           </>
         )}
 
-        {doorQuotation?.color && (
+        {quotation?.color && (
           <>
             <View style={styles.row}>
               <Icon name="palette" size={20} color="#007bff" />
               <Text style={styles.detailLabel}>Color:</Text>
             </View>
-            <Text style={styles.detail}>{doorQuotation.color || 'Not specified'}</Text>
+            <Text style={styles.detail}>{quotation.color || 'Not specified'}</Text>
           </>
         )}
 
