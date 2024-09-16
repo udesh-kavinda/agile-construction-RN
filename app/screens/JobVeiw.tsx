@@ -1,20 +1,33 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import React, { useEffect, useState, useRef } from 'react';
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { launchImageLibrary } from 'react-native-image-picker';
+import * as ImagePicker from 'expo-image-picker';
+import { Camera } from 'expo-camera';
+import { ActionSheetCustom as ActionSheet } from '@expo/react-native-action-sheet';
 
-
-
-const JobVeiw = () => {
+const JobView = () => {
   const route = useRoute();
+  const navigation = useNavigation();
   const { jobId } = route.params as { jobId: string };
   const [job, setJob] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<any>(null);
-  const API_BASE_URL='http://20.2.211.30:8080';
+  const [cameraVisible, setCameraVisible] = useState(false);
+  const actionSheetRef = useRef(null);
+  const cameraRef = useRef(null);
+  const API_BASE_URL = 'http://192.168.8.111:8080';
 
   useEffect(() => {
     const fetchJobDetails = async () => {
@@ -31,6 +44,50 @@ const JobVeiw = () => {
     fetchJobDetails();
   }, [jobId]);
 
+  const requestCameraPermission = async () => {
+    const { status } = await Camera.requestPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Sorry, we need camera permissions to make this work!');
+    }
+  };
+
+  const requestMediaLibraryPermission = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Sorry, we need media library permissions to make this work!');
+    }
+  };
+
+  const takePhoto = async () => {
+    if (cameraRef.current) {
+      const photo = await cameraRef.current.takePictureAsync();
+      setSelectedImage(photo);
+      setCameraVisible(false);
+    }
+  };
+
+  const selectImageFromLibrary = async () => {
+    await requestMediaLibraryPermission();
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setSelectedImage(result.assets[0]);
+    }
+  };
+
+  const handleActionSheet = (index) => {
+    if (index === 0) {
+      requestCameraPermission();
+      setCameraVisible(true);
+    } else if (index === 1) {
+      selectImageFromLibrary();
+    }
+  };
+
   const handleAssignToMe = async () => {
     try {
       await axios.post(`${API_BASE_URL}/api/employee/job/assign/${jobId}`);
@@ -42,67 +99,47 @@ const JobVeiw = () => {
 
   const handleStartJob = async () => {
     try {
-      await axios.post(`${API_BASE_URL}/api/employee/job/start/${jobId}`);
+      await axios.put(`${API_BASE_URL}/api/employee/job/start/${jobId}`);
       setJob((prevJob: any) => ({ ...prevJob, progress: 'processing' }));
+      navigation.navigate('PendingList');
     } catch (err) {
       setError('Failed to start the job');
     }
   };
 
-  // Handle image upload and completion of the job
   const handleCompleteJob = async () => {
     if (job.creationType === 'NEW') {
       if (!selectedImage) {
-        // Show alert if no image is selected
         Alert.alert('Image Required', 'Please upload an image before completing this job.');
         return;
       }
-  
-      // Now that an image is selected, upload it along with the job completion request
-      const formData = new FormData();
-      formData.append('file', {
-        uri: selectedImage.uri,
-        name: selectedImage.fileName,
-        type: selectedImage.type,
-      });
-  
+
       try {
-        const uploadResponse = await axios.post(
-          `${API_BASE_URL}/api/employee/job/done/new/${jobId}`,
-          formData,
-          {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
-          }
-        );
-  
-       
-        setJob((prevJob: any) => ({ ...prevJob, progress: 'done' }));
+        const formData: FormData = new FormData();
+        const res = await fetch(selectedImage.uri);
+        const image = await res.blob();
+        const imageName = 'photo.jpg';
+        formData.append('image', image, imageName);
+
+        await axios.put(`${API_BASE_URL}/api/employee/job/done/${jobId}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        setJob((prevJob) => ({ ...prevJob, progress: 'done' }));
+        navigation.navigate('PendingList');
       } catch (err) {
+        console.error('Error completing job with image:', err);
         setError('Failed to complete the job with image');
       }
     } else {
       try {
-        // If creationType is not NEW, use the normal endpoint
-        await axios.post(`${API_BASE_URL}/api/employee/job/done/${jobId}`);
-        setJob((prevJob: any) => ({ ...prevJob, progress: 'done' }));
+        await axios.put(`${API_BASE_URL}/api/employee/job/done/${jobId}`);
+        setJob((prevJob) => ({ ...prevJob, progress: 'done' }));
+        navigation.navigate('PendingList');
       } catch (err) {
+        console.error('Error completing job:', err);
         setError('Failed to complete the job');
       }
-    }
-  };
-  
-
-  // Function to handle image selection
-  const selectImage = async () => {
-    const result = await launchImageLibrary({
-      mediaType: 'photo',
-      quality: 1,
-    });
-
-    if (result.assets && result.assets.length > 0) {
-      setSelectedImage(result.assets[0]); // Store the selected image
     }
   };
 
@@ -119,7 +156,7 @@ const JobVeiw = () => {
   }
 
   const renderStatusBadge = (status: string) => {
-    let statusColor = '#f0ad4e'; // default color for status
+    let statusColor = '#f0ad4e';
     if (status === 'done') statusColor = '#28a745';
     if (status === 'processing') statusColor = '#007bff';
     if (status === 'pending') statusColor = '#ffc107';
@@ -132,23 +169,28 @@ const JobVeiw = () => {
     );
   };
 
+  const itemDetail = job.stockItem.door || job.stockItem.windows;
+  if (!itemDetail) {
+    return <Text style={styles.error}>No item details found</Text>;
+  }
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        {job.stockItem.door.image ? (
-          <Image source={{ uri: job.stockItem.door.image }} style={styles.image} />
+        {itemDetail.image ? (
+          <Image source={{ uri: itemDetail.image }} style={styles.image} />
         ) : (
           <View style={styles.noImageContainer}>
             <Text style={styles.noImageText}>No Image Available</Text>
           </View>
         )}
-        <Text style={styles.title}>{job.stockItem.door.name}</Text>
-        <Text style={styles.subtitle}>Code: {job.stockItem.door.code}</Text>
+        <Text style={styles.title}>{itemDetail.name}</Text>
+        <Text style={styles.subtitle}>Code: {itemDetail.code}</Text>
         {renderStatusBadge(job.progress)}
       </View>
 
       <View style={styles.detailsCard}>
-      <View style={styles.row}>
+        <View style={styles.row}>
           <Icon name="info" size={20} color="#007bff" />
           <Text style={styles.detailLabel}>Job Type:</Text>
         </View>
@@ -176,7 +218,6 @@ const JobVeiw = () => {
           </>
         )}
 
-        {/* Additional door details */}
         {job.stockItem.door.doorColor && (
           <>
             <View style={styles.row}>
@@ -208,27 +249,72 @@ const JobVeiw = () => {
         )}
       </View>
 
-      <View style={styles.actionContainer}>
-        {/* If job is NEW and image needs to be uploaded */}
-        {job.progress === 'PROCESSING' && job.creationType === 'NEW' && (
-          <TouchableOpacity style={styles.actionButton} onPress={selectImage}>
-            <Text style={styles.actionButtonText}>Upload Image</Text>
+      <View style={styles.buttonContainer}>
+        {job.progress === 'new' && (
+          <>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleAssignToMe}
+            >
+              <Text style={styles.buttonText}>Assign to Me</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => actionSheetRef.current.show()}
+            >
+              <Text style={styles.buttonText}>Select Image</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {job.progress === 'pending' && (
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleStartJob}
+          >
+            <Text style={styles.buttonText}>Start Job</Text>
           </TouchableOpacity>
         )}
 
-        {selectedImage && (
-          <View style={styles.imagePreviewContainer}>
-            <Text>Selected Image:</Text>
-            <Image source={{ uri: selectedImage.uri }} style={styles.imagePreview} />
-          </View>
-        )}
-
-        {job.progress === 'PROCESSING' && (
-          <TouchableOpacity style={styles.actionButton} onPress={handleCompleteJob}>
-            <Text style={styles.actionButtonText}>Complete the Job</Text>
+        {job.progress === 'processing' && (
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleCompleteJob}
+          >
+            <Text style={styles.buttonText}>Complete Job</Text>
           </TouchableOpacity>
         )}
       </View>
+
+      <ActionSheet
+        ref={actionSheetRef}
+        title="Choose an option"
+        options={['Take a Photo', 'Choose from Gallery', 'Cancel']}
+        cancelButtonIndex={2}
+        onPress={handleActionSheet}
+      />
+
+      {cameraVisible && (
+        <View style={styles.cameraContainer}>
+          <Camera style={styles.camera} ref={cameraRef} />
+          <TouchableOpacity style={styles.cameraButton} onPress={takePhoto}>
+            <Text style={styles.cameraButtonText}>Take Photo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.cameraButton}
+            onPress={() => setCameraVisible(false)}
+          >
+            <Text style={styles.cameraButtonText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {selectedImage && (
+        <View style={styles.selectedImageContainer}>
+          <Image source={{ uri: selectedImage.uri }} style={styles.selectedImage} />
+        </View>
+      )}
     </ScrollView>
   );
 };
@@ -236,99 +322,112 @@ const JobVeiw = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#f8f9fa',
+    padding: 16,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 20,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 15,
-    shadowColor: '#000000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 5,
   },
   image: {
-    width: '100%',
+    width: 200,
     height: 200,
     borderRadius: 10,
-    resizeMode: 'cover',
   },
   noImageContainer: {
-    width: '100%',
+    width: 200,
     height: 200,
     borderRadius: 10,
+    backgroundColor: '#e0e0e0',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#cccccc',
   },
   noImageText: {
-    color: '#666666',
+    color: '#9e9e9e',
     fontSize: 16,
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     marginVertical: 10,
-    color: '#333333',
   },
   subtitle: {
-    fontSize: 18,
-    color: '#666666',
+    fontSize: 16,
+    color: '#757575',
+  },
+  statusBadge: {
+    borderRadius: 5,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    marginVertical: 10,
+  },
+  statusText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
   detailsCard: {
-    marginTop: 20,
-    padding: 15,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    shadowColor: '#000000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 5,
+    backgroundColor: '#f5f5f5',
+    padding: 16,
+    borderRadius: 10,
+    marginVertical: 10,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginVertical: 5,
   },
   detailLabel: {
-    fontSize: 14,
-    color: '#888888',
-    marginLeft: 8,
+    fontWeight: 'bold',
+    marginLeft: 10,
   },
   detail: {
+    marginLeft: 10,
     fontSize: 16,
-    marginBottom: 10,
-    color: '#333333',
   },
-  actionContainer: {
-    marginTop: 20,
+  buttonContainer: {
+    marginVertical: 20,
   },
-  actionButton: {
-    backgroundColor: '#28a745',
-    paddingVertical: 12,
-    borderRadius: 8,
+  button: {
+    backgroundColor: '#6200ea',
+    padding: 10,
+    borderRadius: 5,
+    marginVertical: 5,
+  },
+  buttonText: {
+    color: '#fff',
+    textAlign: 'center',
+    fontSize: 16,
+  },
+  cameraContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  actionButtonText: {
-    color: 'white',
+  camera: {
+    width: '100%',
+    height: '80%',
+  },
+  cameraButton: {
+    backgroundColor: '#6200ea',
+    padding: 10,
+    borderRadius: 5,
+    marginVertical: 5,
+  },
+  cameraButtonText: {
+    color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
   },
-  statusBadge: {
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 20,
-    marginTop: 10,
+  selectedImageContainer: {
+    marginVertical: 16,
+    alignItems: 'center',
   },
-  statusText: {
-    color: 'white',
-    fontWeight: '600',
+  selectedImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 10,
   },
   loading: {
     flex: 1,
@@ -336,22 +435,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   error: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    fontSize: 18,
-    color: '#ff0000',
-  },
-  imagePreviewContainer: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  imagePreview: {
-    width: 200,
-    height: 200,
-    borderRadius: 10,
-    resizeMode: 'cover',
+    textAlign: 'center',
+    color: 'red',
   },
 });
 
-export default JobVeiw;
+export default JobView;

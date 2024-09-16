@@ -26,7 +26,7 @@ interface AuthProps {
 }
 
 const TOKEN_KEY = "my-key";
-export const API_URL = "http://20.2.211.30:8080/api/user";
+export const API_URL = "http://192.168.8.111:8080/api/user";
 const AuthContext = createContext<AuthProps>({});
 
 export const useAuth = () => {

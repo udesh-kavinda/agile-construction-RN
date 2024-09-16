@@ -4,6 +4,37 @@ import { useNavigation } from '@react-navigation/native';
 import { useWindowDimensions } from 'react-native';
 import axios from 'axios';
 
+// Define a type that can represent either a door or a window
+type DoorOrWindow = {
+  id: string;
+  name: string;
+  code: string;
+  height: string;
+  width: string;
+  image: string;
+  colorType?: string;
+  windowColor?: string;  // For windows
+  boardColor?: string;   // For doors
+  glassColor?: string;
+  typeOfBoard?: string;
+  boardThickness?: string;
+  glassThickness?: string;
+  status: string;
+  fillingType?: string;
+  price?: number | null;  // Optional if not always present
+};
+
+type StockItem = {
+  id: string;
+  type: string;
+  offer?: string | null;
+  price?: number | null;
+  qty: number;
+  status: string;
+  door?: DoorOrWindow | null;  // door can be null
+  windows?: DoorOrWindow | null; // windows can be null
+};
+
 type ListItemProps = {
   Item: {
     id: string;
@@ -13,32 +44,8 @@ type ListItemProps = {
     qty: number;
     dueDate: string;
     createdAt: string;
-    image: string;
-    stockItem: {
-      id: string;
-      type: string;
-      offer: string | null;
-      price: number;
-      qty: number;
-      status: string;
-      door: {
-        id: string;
-        name: string;
-        code: string;
-        height: string;
-        width: string;
-        image: string;
-        type: string;
-        doorColor: string;
-        glassColor: string;
-        boardColor: string;
-        typeOfBoard: string | null;
-        boardThickness: string;
-        glassThickness: string;
-        status: string;
-        fillingType: string;
-      };
-    };
+    image?: string;
+    stockItem: StockItem;
   };
 };
 
@@ -78,6 +85,13 @@ const PendingListItem = ({ Item }: ListItemProps) => {
   const imageHeight = width * 0.5;
   const statusColor = getStatusColor(Item.status);
   const progressColor = getProgressColor(Item.progress);
+
+  // Choose between door and window data
+  const itemDetail = Item.stockItem.door || Item.stockItem.windows;
+
+  if (!itemDetail) {
+    return null; // If both are null, don't render anything
+  }
 
   const dynamicStyles = StyleSheet.create({
     card: {
@@ -186,7 +200,6 @@ const PendingListItem = ({ Item }: ListItemProps) => {
     navigation.navigate('JobVeiw', { jobId: Item.id });
   };
 
-
   return (
     <View style={dynamicStyles.card}>
       <View style={dynamicStyles.statusContainer}>
@@ -195,7 +208,7 @@ const PendingListItem = ({ Item }: ListItemProps) => {
       <View style={dynamicStyles.progressContainer}>
         <Text style={dynamicStyles.progressText}>{Item.progress}</Text>
       </View>
-      <Image source={{ uri: Item.stockItem.door.image }} style={dynamicStyles.image} />
+      <Image source={{ uri: itemDetail.image }} style={dynamicStyles.image} />
       <View style={dynamicStyles.content}>
         <Text style={dynamicStyles.title}>Job ID: {getJobTitle(Item.id)}</Text>
         <Text style={dynamicStyles.subtitle}>Type: {Item.type}</Text>

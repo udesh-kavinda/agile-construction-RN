@@ -42,9 +42,6 @@ const UserProfile = () => {
         <Text style={styles.label}>Registered Date:</Text>
         <Text style={styles.value}>{user.registeredDate || 'Not Provided'}</Text>
       </View>
-      <TouchableOpacity style={styles.editButton} onPress={() => console.log('Edit button pressed')}>
-        <Text style={styles.editButtonText}>Edit Profile</Text>
-      </TouchableOpacity>
       <TouchableOpacity style={styles.logoutButton} onPress={onLogout}>
         <Text style={styles.logoutButtonText}>Logout</Text>
       </TouchableOpacity>

@@ -16,7 +16,7 @@ const buildUrl = ({ status, progress, page, size }) => {
     page,
     size,
   }).toString();
-  return `http://20.2.211.30:8080/api/employee/job?${queryParams}`; // Replace with your local IP address
+  return `http://192.168.8.111:8080/api/employee/job?${queryParams}`; // Replace with your local IP address
 };
 
 const MyList = () => {
@@ -67,11 +67,11 @@ const MyList = () => {
     }
     setItems([]);
     setNextPage('');
-    fetchPage(buildUrl({ status: 'ACTIVE', progress: 'NEW', page: 0, size: 10 }));
+    fetchPage(buildUrl({ status: 'ACTIVE', progress: 'NEW', page: 0, size: 50 }));
   };
 
   useEffect(() => {
-    fetchPage(buildUrl({ status: 'ACTIVE', progress: 'NEW', page: 0, size: 10 }));
+    fetchPage(buildUrl({ status: 'ACTIVE', progress: 'NEW', page: 0, size: 50 }));
   }, []);
 
   const renderItem = useCallback(

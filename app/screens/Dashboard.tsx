@@ -13,7 +13,7 @@ const buildUrl = ({ status, progress }) => {
     status,
     progress,
   }).toString();
-  return `http://20.2.211.30:8080/api/employee/job/employee?${queryParams}`; // Replace with your local IP address
+  return `http://192.168.8.111:8080/api/employee/job/employee?${queryParams}`; // Replace with your local IP address
 };
 
 const Dashboard = () => {

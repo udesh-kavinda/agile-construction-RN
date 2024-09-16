@@ -4,6 +4,36 @@ import { useNavigation } from '@react-navigation/native';
 import { useWindowDimensions } from 'react-native';
 import axios from 'axios'; // Import axios for making HTTP requests
 
+type DoorOrWindow = {
+  id: string;
+  name: string;
+  code: string;
+  height: string;
+  width: string;
+  image: string;
+  colorType?: string;
+  windowColor?: string;  // For windows
+  boardColor?: string;   // For doors
+  glassColor?: string;
+  typeOfBoard?: string;
+  boardThickness?: string;
+  glassThickness?: string;
+  status: string;
+  fillingType?: string;
+  price?: number | null;  // Optional if not always present
+};
+
+type StockItem = {
+  id: string;
+  type: string;
+  offer?: string | null;
+  price?: number | null;
+  qty: number;
+  status: string;
+  door?: DoorOrWindow | null;  // door can be null
+  windows?: DoorOrWindow | null; // windows can be null
+};
+
 type ListItemProps = {
   Item: {
     id: string;
@@ -13,40 +43,18 @@ type ListItemProps = {
     qty: number;
     dueDate: string;
     createdAt: string;
-    image: string;
-    stockItem: {
-      id: string;
-      type: string;
-      offer: string | null;
-      price: number;
-      qty: number;
-      status: string;
-      door: {
-        id: string;
-        name: string;
-        code: string;
-        height: string;
-        width: string;
-        image: string;
-        type: string;
-        doorColor: string;
-        glassColor: string;
-        boardColor: string;
-        typeOfBoard: string | null;
-        boardThickness: string;
-        glassThickness: string;
-        status: string;
-        fillingType: string;
-      };
-    };
+    image?: string;
+    stockItem: StockItem;
   };
 };
+
+const API_BASE_URL = 'http://192.168.8.111:8080';
 
 // Function to get the color based on status
 const getStatusColor = (status: string) => {
   switch (status.toLowerCase()) {
     case 'active':
-      return '#c586c0'; // Green for DONE
+      return '#c586c0'; // Purple for ACTIVE
     case 'new':
       return '#007bff'; // Blue for NEW
     case 'pending':
@@ -64,7 +72,7 @@ const getProgressColor = (progress: string) => {
     case 'new':
       return '#007bff'; // Darker blue for NEW
     case 'processing':
-      return '#f39c12'; // Darker yellow for PENDING
+      return '#f39c12'; // Darker yellow for PROCESSING
     default:
       return '#666'; // Gray for unknown progress
   }
@@ -203,7 +211,7 @@ const ListItem = ({ Item }: ListItemProps) => {
   // Function to handle assigning the job
   const handleAssignJob = async () => {
     try {
-      const response = await axios.post(`http://20.2.211.30:8080/api/employee/job/assign/${Item.id}`);
+      const response = await axios.post(`${API_BASE_URL}/api/employee/job/assign/${Item.id}`);
       if (response.status === 200) {
         Alert.alert('Success', 'Job has been assigned successfully.');
       } else {
@@ -214,6 +222,13 @@ const ListItem = ({ Item }: ListItemProps) => {
       console.error(error);
     }
   };
+
+  // Choose between door and window data
+  const itemDetail = Item.stockItem.door || Item.stockItem.windows;
+
+  if (!itemDetail) {
+    return null; // If both are null, don't render anything
+  }
 
   return (
     <View style={dynamicStyles.card}>
@@ -227,7 +242,7 @@ const ListItem = ({ Item }: ListItemProps) => {
         <Text style={dynamicStyles.progressText}>{Item.progress}</Text>
       </View>
 
-      <Image source={{ uri: Item.stockItem.door.image }} style={dynamicStyles.image} />
+      <Image source={{ uri: itemDetail.image }} style={dynamicStyles.image} />
       <View style={dynamicStyles.content}>
         <Text style={dynamicStyles.title}>Job ID: {getJobTitle(Item.id)}</Text>
         <Text style={dynamicStyles.subtitle}>Type: {Item.type}</Text>

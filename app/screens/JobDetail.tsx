@@ -10,11 +10,12 @@ const JobDetail = () => {
   const [job, setJob] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const API_BASE_URL = 'http://192.168.8.111:8080';
 
   useEffect(() => {
     const fetchJobDetails = async () => {
       try {
-        const response = await axios.get(`http://20.2.211.30:8080/api/employee/job/${jobId}`);
+        const response = await axios.get(`${API_BASE_URL}/api/employee/job/${jobId}`);
         setJob(response.data.data);
       } catch (err) {
         setError('Failed to fetch job details');
@@ -28,7 +29,7 @@ const JobDetail = () => {
 
   const handleAssignToMe = async () => {
     try {
-      await axios.post(`http://20.2.211.30:8080/api/employee/job/assign/${jobId}`);
+      await axios.post(`${API_BASE_URL}/api/employee/job/assign/${jobId}`);
       setJob((prevJob: any) => ({ ...prevJob, progress: 'pending' }));
     } catch (err) {
       setError('Failed to assign job');
@@ -37,7 +38,7 @@ const JobDetail = () => {
 
   const handleStartJob = async () => {
     try {
-      await axios.post(`http://20.2.211.30:8080/api/employee/job/start/${jobId}`);
+      await axios.post(`${API_BASE_URL}/api/employee/job/start/${jobId}`);
       setJob((prevJob: any) => ({ ...prevJob, progress: 'processing' }));
     } catch (err) {
       setError('Failed to start the job');
@@ -46,7 +47,7 @@ const JobDetail = () => {
 
   const handleCompleteJob = async () => {
     try {
-      await axios.post(`http://20.2.211.30:8080/api/employee/job/done/${jobId}`);
+      await axios.post(`${API_BASE_URL}/api/employee/job/done/${jobId}`);
       setJob((prevJob: any) => ({ ...prevJob, progress: 'done' }));
     } catch (err) {
       setError('Failed to complete the job');
@@ -80,18 +81,25 @@ const JobDetail = () => {
     );
   };
 
+  // Choose between door and window details
+  const itemDetail = job.stockItem.door || job.stockItem.windows;
+
+  if (!itemDetail) {
+    return <Text style={styles.error}>No item details found</Text>;
+  }
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        {job.stockItem.door.image ? (
-          <Image source={{ uri: job.stockItem.door.image }} style={styles.image} />
+        {itemDetail.image ? (
+          <Image source={{ uri: itemDetail.image }} style={styles.image} />
         ) : (
           <View style={styles.noImageContainer}>
             <Text style={styles.noImageText}>No Image Available</Text>
           </View>
         )}
-        <Text style={styles.title}>{job.stockItem.door.name}</Text>
-        <Text style={styles.subtitle}>Code: {job.stockItem.door.code}</Text>
+        <Text style={styles.title}>{itemDetail.name}</Text>
+        <Text style={styles.subtitle}>Code: {itemDetail.code}</Text>
         {renderStatusBadge(job.progress)}
       </View>
 
@@ -114,44 +122,62 @@ const JobDetail = () => {
         </View>
         <Text style={styles.detail}>{job.qty}</Text>
 
-        {job.stockItem.door.price !== null && (
+        {itemDetail.price !== null && (
           <>
             <View style={styles.row}>
               <Icon name="attach-money" size={20} color="#007bff" />
               <Text style={styles.detailLabel}>Price:</Text>
             </View>
-            <Text style={styles.detail}>${job.stockItem.door.price}</Text>
+            <Text style={styles.detail}>${itemDetail.price}</Text>
           </>
         )}
 
-        {/* Additional door details */}
-        {job.stockItem.door.doorColor && (
+        {/* Additional details based on the type */}
+        {'door' in job.stockItem && (
           <>
-            <View style={styles.row}>
-              <Icon name="palette" size={20} color="#007bff" />
-              <Text style={styles.detailLabel}>Door Color:</Text>
-            </View>
-            <Text style={styles.detail}>{job.stockItem.door.doorColor}</Text>
+            {itemDetail.doorColor && (
+              <>
+                <View style={styles.row}>
+                  <Icon name="palette" size={20} color="#007bff" />
+                  <Text style={styles.detailLabel}>Door Color:</Text>
+                </View>
+                <Text style={styles.detail}>{itemDetail.doorColor}</Text>
+              </>
+            )}
+
+            {itemDetail.boardColor && (
+              <>
+                <View style={styles.row}>
+                  <Icon name="palette" size={20} color="#007bff" />
+                  <Text style={styles.detailLabel}>Board Color:</Text>
+                </View>
+                <Text style={styles.detail}>{itemDetail.boardColor}</Text>
+              </>
+            )}
+
+            {itemDetail.fillingType && (
+              <>
+                <View style={styles.row}>
+                  <Icon name="build" size={20} color="#007bff" />
+                  <Text style={styles.detailLabel}>Filling Type:</Text>
+                </View>
+                <Text style={styles.detail}>{itemDetail.fillingType}</Text>
+              </>
+            )}
           </>
         )}
 
-        {job.stockItem.door.boardColor && (
+        {'windows' in job.stockItem && (
           <>
-            <View style={styles.row}>
-              <Icon name="palette" size={20} color="#007bff" />
-              <Text style={styles.detailLabel}>Board Color:</Text>
-            </View>
-            <Text style={styles.detail}>{job.stockItem.door.boardColor}</Text>
-          </>
-        )}
-
-        {job.stockItem.door.fillingType && (
-          <>
-            <View style={styles.row}>
-              <Icon name="build" size={20} color="#007bff" />
-              <Text style={styles.detailLabel}>Filling Type:</Text>
-            </View>
-            <Text style={styles.detail}>{job.stockItem.door.fillingType}</Text>
+            {itemDetail.windowColor && (
+              <>
+                <View style={styles.row}>
+                  <Icon name="palette" size={20} color="#007bff" />
+                  <Text style={styles.detailLabel}>Window Color:</Text>
+                </View>
+                <Text style={styles.detail}>{itemDetail.windowColor}</Text>
+              </>
+            )}
           </>
         )}
       </View>
