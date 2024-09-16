@@ -44,7 +44,21 @@ type ListItemProps = {
     dueDate: string;
     createdAt: string;
     image?: string;
-    stockItem: StockItem;
+    stockItem?: StockItem;
+    quotation?: {
+      doorQuotation?: {
+        design?: {
+          name: string;
+          image: string;
+        };
+      };
+      windowQuotation?: {
+        design?: {
+          name: string;
+          image: string;
+        };
+      };
+    };
   };
 };
 
@@ -86,10 +100,7 @@ const getJobTitle = (id: string) => {
 const ListItem = ({ Item }: ListItemProps) => {
   console.log('Re-rendering: ', Item.id);
 
-  // Get the current screen dimensions
   const { width } = useWindowDimensions();
-  
-  // Access navigation object
   const navigation = useNavigation();
 
   // Compute dynamic styles based on screen width and item properties
@@ -223,35 +234,54 @@ const ListItem = ({ Item }: ListItemProps) => {
     }
   };
 
-  // Choose between door and window data
-  const itemDetail = Item.stockItem.door || Item.stockItem.windows;
+  // Function to safely get the image URL
+  const getImageUrl = () => {
+    if (Item.stockItem?.door?.image) {
+      return Item.stockItem.door.image;
+    } else if (Item.stockItem?.windows?.image) {
+      return Item.stockItem.windows.image;
+    } else if (Item.quotation?.doorQuotation?.design?.image) {
+      return Item.quotation.doorQuotation.design.image;
+    } else if (Item.quotation?.windowQuotation?.design?.image) {
+      return Item.quotation.windowQuotation.design.image;
+    }
+    return 'https://via.placeholder.com/150'; // Default placeholder image
+  };
 
-  if (!itemDetail) {
-    return null; // If both are null, don't render anything
-  }
+  // Function to get the item name
+  const getItemName = () => {
+    if (Item.stockItem?.door?.name) {
+      return Item.stockItem.door.name;
+    } else if (Item.stockItem?.windows?.name) {
+      return Item.stockItem.windows.name;
+    } else if (Item.quotation?.doorQuotation?.design?.name) {
+      return Item.quotation.doorQuotation.design.name;
+    } else if (Item.quotation?.windowQuotation?.design?.name) {
+      return Item.quotation.windowQuotation.design.name;
+    }
+    return 'Unknown Item';
+  };
 
   return (
     <View style={dynamicStyles.card}>
-      {/* Status at the top right */}
       <View style={dynamicStyles.statusContainer}>
         <Text style={dynamicStyles.statusText}>{Item.status}</Text>
       </View>
       
-      {/* Progress indicator in the top right, below the status */}
       <View style={dynamicStyles.progressContainer}>
         <Text style={dynamicStyles.progressText}>{Item.progress}</Text>
       </View>
 
-      <Image source={{ uri: itemDetail.image }} style={dynamicStyles.image} />
+      <Image source={{ uri: getImageUrl() }} style={dynamicStyles.image} />
       <View style={dynamicStyles.content}>
         <Text style={dynamicStyles.title}>Job ID: {getJobTitle(Item.id)}</Text>
         <Text style={dynamicStyles.subtitle}>Type: {Item.type}</Text>
+        <Text style={dynamicStyles.detail}>Item: {getItemName()}</Text>
         <Text style={dynamicStyles.detail}>Progress: {Item.progress}</Text>
         <Text style={dynamicStyles.detail}>Quantity: {Item.qty}</Text>
         <Text style={dynamicStyles.detail}>Due Date: {Item.dueDate}</Text>
         <Text style={dynamicStyles.date}>Created At: {new Date(Item.createdAt).toLocaleDateString()}</Text>
         
-        {/* Buttons to view details and assign job */}
         <TouchableOpacity style={dynamicStyles.button} onPress={handleViewDetails}>
           <Text style={dynamicStyles.buttonText}>Full View</Text>
         </TouchableOpacity>
