@@ -3,6 +3,7 @@ import { View, Text, Image, StyleSheet, TouchableOpacity, Alert } from 'react-na
 import { useNavigation } from '@react-navigation/native';
 import { useWindowDimensions } from 'react-native';
 import axios from 'axios'; // Import axios for making HTTP requests
+import { API_BASE_URL } from '../config';
 
 type DoorOrWindow = {
   id: string;
@@ -61,8 +62,6 @@ type ListItemProps = {
     };
   };
 };
-
-const API_BASE_URL = 'http://192.168.8.111:8080';
 
 // Function to get the color based on status
 const getStatusColor = (status: string) => {

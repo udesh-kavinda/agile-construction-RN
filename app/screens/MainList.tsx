@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext'; // Import useAuth hook
 import { useFocusEffect } from '@react-navigation/native';
+import { API_BASE_URL } from '../config';
 
 
 const buildUrl = ({ status, progress, page, size }) => {
@@ -18,7 +19,7 @@ const buildUrl = ({ status, progress, page, size }) => {
     page,
     size,
   }).toString();
-  return `http://192.168.8.111:8080/api/employee/job?${queryParams}`; // Replace with your local IP address
+  return `${API_BASE_URL}/api/employee/job?${queryParams}`; // Replace with your local IP address
 };
 
 import { Text } from 'react-native'; // Add this import

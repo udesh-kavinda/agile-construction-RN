@@ -2,7 +2,6 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialIcons'; // Import the MaterialIcons component
 
-import MainList from '../screens/MainList';
 import Profile from '../screens/Profile';
 import Dashboard from '../screens/Dashboard';
 import PendingList from '../screens/PendingList';

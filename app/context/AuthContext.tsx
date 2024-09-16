@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../config';
+
 
 interface User {
   id: string;
@@ -26,7 +28,7 @@ interface AuthProps {
 }
 
 const TOKEN_KEY = "my-key";
-export const API_URL = "http://192.168.8.111:8080/api/user";
+export const API_URL = `${API_BASE_URL}/api/user`;
 const AuthContext = createContext<AuthProps>({});
 
 export const useAuth = () => {

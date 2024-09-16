@@ -3,6 +3,7 @@ import { View, Text, Image, StyleSheet, ScrollView, ActivityIndicator, Touchable
 import { useRoute } from '@react-navigation/native';
 import axios from 'axios';
 import Icon from 'react-native-vector-icons/MaterialIcons'; // Adding icons for visual appeal
+import { API_BASE_URL } from '../config';
 
 const JobDetail = () => {
   const route = useRoute();
@@ -10,7 +11,6 @@ const JobDetail = () => {
   const [job, setJob] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const API_BASE_URL = 'http://192.168.8.111:8080';
 
   useEffect(() => {
     const fetchJobDetails = async () => {

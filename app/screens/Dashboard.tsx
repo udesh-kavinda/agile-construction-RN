@@ -5,6 +5,7 @@ import { PieChart } from 'react-native-chart-kit';
 import { Dimensions } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import axios from 'axios'; // Import axios
+import { API_BASE_URL } from '../config';
 
 const { width } = Dimensions.get('window');
 
@@ -13,7 +14,7 @@ const buildUrl = ({ status, progress }) => {
     status,
     progress,
   }).toString();
-  return `http://192.168.8.111:8080/api/employee/job/employee?${queryParams}`; // Replace with your local IP address
+  return `${API_BASE_URL}/api/employee/job/employee?${queryParams}`; // Replace with your local IP address
 };
 
 const Dashboard = () => {

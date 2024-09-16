@@ -4,6 +4,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons'; // Import an icon li
 import { useAuth } from '../context/AuthContext'; // Import useAuth hook
 import PendingListItem from '../components/PendingListItem'; // Adjust import path as needed
 import { useFocusEffect } from '@react-navigation/native';
+import { API_BASE_URL } from '../config';
 
 // Build URL with query parameters
 const buildUrl = ({ status, progress }) => {
@@ -11,7 +12,7 @@ const buildUrl = ({ status, progress }) => {
     status,
     progress,
   }).toString();
-  return `http://192.168.8.111:8080/api/employee/job/employee?${queryParams}`; // Replace with your local IP address
+  return `${API_BASE_URL}/api/employee/job/employee?${queryParams}`; // Replace with your local IP address
 };
 
 const PendingList = () => {
