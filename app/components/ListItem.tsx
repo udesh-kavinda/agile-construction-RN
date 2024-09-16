@@ -97,7 +97,7 @@ const getJobTitle = (id: string) => {
   return id.slice(-6);
 };
 
-const ListItem = ({ Item }: ListItemProps) => {
+const ListItem = ({ Item, onAssign }) => {
   console.log('Re-rendering: ', Item.id);
 
   const { width } = useWindowDimensions();
@@ -216,15 +216,16 @@ const ListItem = ({ Item }: ListItemProps) => {
 
   // Function to handle viewing details
   const handleViewDetails = () => {
-    navigation.navigate('JobDetail', { jobId: Item.id });
+    navigation.navigate('JobVeiw', { jobId: Item.id });
   };
 
   // Function to handle assigning the job
-  const handleAssignJob = async () => {
+  const handleAssign = async () => {
     try {
       const response = await axios.post(`${API_BASE_URL}/api/employee/job/assign/${Item.id}`);
       if (response.status === 200) {
         Alert.alert('Success', 'Job has been assigned successfully.');
+        onAssign();
       } else {
         Alert.alert('Error', 'Failed to assign the job.');
       }
@@ -285,7 +286,7 @@ const ListItem = ({ Item }: ListItemProps) => {
         <TouchableOpacity style={dynamicStyles.button} onPress={handleViewDetails}>
           <Text style={dynamicStyles.buttonText}>Full View</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={dynamicStyles.assignButton} onPress={handleAssignJob}>
+        <TouchableOpacity style={dynamicStyles.assignButton} onPress={handleAssign}>
           <Text style={dynamicStyles.assignButtonText}>Assign</Text>
         </TouchableOpacity>
       </View>

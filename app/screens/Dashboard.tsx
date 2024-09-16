@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { PieChart } from 'react-native-chart-kit';
 import { Dimensions } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import axios from 'axios'; // Import axios
 
 const { width } = Dimensions.get('window');
@@ -23,54 +23,56 @@ const Dashboard = () => {
   const [error, setError] = useState<string | null>(null);
   const navigation = useNavigation();
 
-  useEffect(() => {
-    const fetchJobStats = async () => {
-      try {
-        if (!authState || !authState.user) {
-          throw new Error('User is not authenticated or authState is undefined');
-        }
-  
-        const url = buildUrl({ status: 'ACTIVE', progress: 'ALL' });
-        const response = await axios.get(url);
-  
-        if (response.data && Array.isArray(response.data.data)) {
-          const jobs = response.data.data;
-  
-          // Initialize the counts for each progress type
-          let pendingCount = 0;
-          let processingCount = 0;
-          let doneCount = 0;
-  
-          // Iterate through the job objects and count by `progress`
-          jobs.forEach(job => {
-            if (job.progress === 'PENDING') {
-              pendingCount++;
-            } else if (job.progress === 'PROCESSING') {
-              processingCount++;
-            } else if (job.progress === 'DONE') {
-              doneCount++;
-            }
-          });
-  
-          // Set the state with the calculated counts
-          setJobStats({
-            pending: pendingCount,
-            processing: processingCount,
-            done: doneCount,
-          });
-        } else {
-          throw new Error('Invalid data structure received from the server');
-        }
-  
-        setLoading(false);
-      } catch (err) {
-        setError('Failed to fetch job statistics');
-        setLoading(false);
+  const fetchJobStats = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (!authState || !authState.user) {
+        throw new Error('User is not authenticated or authState is undefined');
       }
-    };
-  
-    fetchJobStats();
+
+      const url = buildUrl({ status: 'ACTIVE', progress: 'ALL' });
+      const response = await axios.get(url);
+
+      if (response.data && Array.isArray(response.data.data)) {
+        const jobs = response.data.data;
+
+        // Initialize the counts for each progress type
+        let pendingCount = 0;
+        let processingCount = 0;
+        let doneCount = 0;
+
+        // Iterate through the job objects and count by `progress`
+        jobs.forEach(job => {
+          if (job.progress === 'PENDING') {
+            pendingCount++;
+          } else if (job.progress === 'PROCESSING') {
+            processingCount++;
+          } else if (job.progress === 'DONE') {
+            doneCount++;
+          }
+        });
+
+        // Set the state with the calculated counts
+        setJobStats({
+          pending: pendingCount,
+          processing: processingCount,
+          done: doneCount,
+        });
+      } else {
+        throw new Error('Invalid data structure received from the server');
+      }
+    } catch (err) {
+      setError('Failed to fetch job statistics');
+    } finally {
+      setLoading(false);
+    }
   }, [authState]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchJobStats();
+    }, [fetchJobStats])
+  );
 
   if (loading) {
     return <ActivityIndicator size="large" color="#007bff" />;

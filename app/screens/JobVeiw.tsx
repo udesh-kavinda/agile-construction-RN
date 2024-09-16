@@ -15,10 +15,14 @@ import axios from "axios";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
+import { styles } from "../screens/JobViewStyles";
 
 // Update the component name from JobVeiw to JobView
+import Toast from 'react-native-toast-message';
+
 const JobView = () => {
   const route = useRoute();
+  const navigation = useNavigation();
   const { jobId } = route.params as { jobId: string };
   const [job, setJob] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -47,20 +51,40 @@ const JobView = () => {
   const handleAssignToMe = async () => {
     try {
       await axios.post(`${API_BASE_URL}/api/employee/job/assign/${jobId}`);
-      setJob((prevJob: any) => ({ ...prevJob, progress: "pending" }));
+      setJob((prevJob: any) => ({ ...prevJob, progress: 'pending' }));
+      Toast.show({
+        type: 'success',
+        text1: 'Job Assigned',
+        text2: 'The job has been successfully Assign To You.'
+      });
+      navigation.navigate('MainList');
     } catch (err) {
-      setError("Failed to assign job");
+      setError('Failed to assign job');
+      oast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to start the job.'
+      });
+      setError("Failed to start the job");
     }
   };
 
   const handleStartJob = async () => {
     try {
       await axios.put(`${API_BASE_URL}/api/employee/job/start/${jobId}`);
-      setJob((prevJob: any) => ({ ...prevJob, progress: "processing" }));
-
-      // Navigate back to the PendingList after starting the job
+      setJob((prevJob: any) => ({ ...prevJob, progress: "PROCESSING" }));
+      Toast.show({
+        type: 'success',
+        text1: 'Job Started',
+        text2: 'The job has been successfully started.'
+      });
       navigation.navigate('PendingList');
     } catch (err) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to start the job.'
+      });
       setError("Failed to start the job");
     }
   };
@@ -98,11 +122,19 @@ const JobView = () => {
 
         // Update job status to 'done'
         setJob((prevJob) => ({ ...prevJob, progress: "done" }));
-
-        // Navigate back to the PendingList after completing the job
         navigation.navigate('PendingList');
+        Toast.show({
+          type: 'success',
+          text1: 'Job Completed',
+          text2: 'The job has been successfully completed with image upload.'
+        });
       } catch (err) {
         console.error("Error completing job with image:", err);
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to complete the job with image.'
+        });
         setError("Failed to complete the job with image");
       }
     } else {
@@ -111,11 +143,20 @@ const JobView = () => {
           `${API_BASE_URL}/api/employee/job/done/${jobId}`
         );
         setJob((prevJob) => ({ ...prevJob, progress: "done" }));
-
-        // Navigate back to the PendingList after completing the job
+        Toast.show({
+          type: 'success',
+          text1: 'Job Completed',
+          text2: 'The job has been successfully completed.'
+        });
         navigation.navigate('PendingList');
       } catch (err) {
         console.error("Error completing job:", err);
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to complete the job.'
+        });
+        navigation.navigate('PendingList');
         setError("Failed to complete the job");
       }
     }
@@ -182,20 +223,24 @@ const JobView = () => {
       </View>
     );
   };
-  const itemDetail = job.stockItem.door || job.stockItem.windows;
+
+  const doorQuotation = job.quotation?.doorQuotation;
+  const design = doorQuotation?.design;
+  const customer = job.quotation?.customer?.user;
+  
   return (
     <ScrollView style={styles.container}>
-            <View style={styles.header}>
-        {itemDetail.image ? (
-          <Image source={{ uri: itemDetail.image }} style={styles.image} />
+      <View style={styles.header}>
+        {design?.image ? (
+          <Image source={{ uri: design.image }} style={styles.image} />
         ) : (
           <View style={styles.noImageContainer}>
             <Text style={styles.noImageText}>No Image Available</Text>
           </View>
         )}
-        <Text style={styles.title}>{itemDetail.name}</Text>
-        <Text style={styles.subtitle}>Code: {itemDetail.code}</Text>
-        {renderStatusBadge(job.progress)}
+        <Text style={styles.title}>{design?.name || 'Unnamed Item'}</Text>
+        <Text style={styles.subtitle}>Code: {design?.code || 'N/A'}</Text>
+        {renderStatusBadge(job.progress || 'unknown')}
       </View>
 
       <View style={styles.detailsCard}>
@@ -203,64 +248,70 @@ const JobView = () => {
           <Icon name="info" size={20} color="#007bff" />
           <Text style={styles.detailLabel}>Job Type:</Text>
         </View>
-        <Text style={styles.detail}>{job.type}</Text>
+        <Text style={styles.detail}>{job.type || 'N/A'}</Text>
 
         <View style={styles.row}>
           <Icon name="date-range" size={20} color="#007bff" />
           <Text style={styles.detailLabel}>Due Date:</Text>
         </View>
-        <Text style={styles.detail}>{job.dueDate}</Text>
+        <Text style={styles.detail}>{job.dueDate || 'Not specified'}</Text>
 
         <View style={styles.row}>
           <Icon name="inbox" size={20} color="#007bff" />
           <Text style={styles.detailLabel}>Quantity:</Text>
         </View>
-        <Text style={styles.detail}>{job.qty}</Text>
+        <Text style={styles.detail}>{job.qty || 'N/A'}</Text>
 
-        {job.stockItem.door.price !== null && (
+        {doorQuotation?.height && (
           <>
             <View style={styles.row}>
-              <Icon name="attach-money" size={20} color="#007bff" />
-              <Text style={styles.detailLabel}>Price:</Text>
+              <Icon name="height" size={20} color="#007bff" />
+              <Text style={styles.detailLabel}>Height:</Text>
             </View>
-            <Text style={styles.detail}>${job.stockItem.door.price}</Text>
+            <Text style={styles.detail}>{doorQuotation.height} mm</Text>
           </>
         )}
 
-        {/* Additional door details */}
-        {job.stockItem.door.doorColor && (
+        {doorQuotation?.width && (
+          <>
+            <View style={styles.row}>
+              <Icon name="straighten" size={20} color="#007bff" />
+              <Text style={styles.detailLabel}>Width:</Text>
+            </View>
+            <Text style={styles.detail}>{doorQuotation.width} mm</Text>
+          </>
+        )}
+
+        {doorQuotation?.color && (
           <>
             <View style={styles.row}>
               <Icon name="palette" size={20} color="#007bff" />
-              <Text style={styles.detailLabel}>Door Color:</Text>
+              <Text style={styles.detailLabel}>Color:</Text>
             </View>
-            <Text style={styles.detail}>{job.stockItem.door.doorColor}</Text>
+            <Text style={styles.detail}>{doorQuotation.color || 'Not specified'}</Text>
           </>
         )}
 
-        {job.stockItem.door.boardColor && (
+        {customer && (
           <>
             <View style={styles.row}>
-              <Icon name="palette" size={20} color="#007bff" />
-              <Text style={styles.detailLabel}>Board Color:</Text>
+              <Icon name="person" size={20} color="#007bff" />
+              <Text style={styles.detailLabel}>Customer:</Text>
             </View>
-            <Text style={styles.detail}>{job.stockItem.door.boardColor}</Text>
-          </>
-        )}
-
-        {job.stockItem.door.fillingType && (
-          <>
-            <View style={styles.row}>
-              <Icon name="build" size={20} color="#007bff" />
-              <Text style={styles.detailLabel}>Filling Type:</Text>
-            </View>
-            <Text style={styles.detail}>{job.stockItem.door.fillingType}</Text>
+            <Text style={styles.detail}>{`${customer.firstName} ${customer.lastName}`}</Text>
+            <Text style={styles.detail}>{customer.contact}</Text>
+            <Text style={styles.detail}>{customer.address}</Text>
           </>
         )}
       </View>
 
       <View style={styles.actionContainer}>
-        {job.progress === "PROCESSING" && job.creationType === "NEW" && (
+      {job.progress === 'NEW' && (
+          <TouchableOpacity style={styles.actionButton} onPress={handleAssignToMe}>
+            <Text style={styles.actionButtonText}>Assign To Me</Text>
+          </TouchableOpacity>
+        )}
+      {job.progress === "PROCESSING" && job.creationType === "NEW" && (
           <TouchableOpacity style={styles.actionButton} onPress={selectImage}>
             <Text style={styles.actionButtonText}>Upload Image</Text>
           </TouchableOpacity>
@@ -275,7 +326,6 @@ const JobView = () => {
             />
           </View>
         )}
-
         {job.progress === "PENDING" && (
           <TouchableOpacity
             style={styles.actionButton}
@@ -285,7 +335,7 @@ const JobView = () => {
           </TouchableOpacity>
         )}
 
-        {job.progress === "PROCESSING" && selectedImage && (
+        {job.progress === "PROCESSING" && (selectedImage || job.creationType != "NEW") && (
           <TouchableOpacity
             style={styles.actionButton}
             onPress={handleCompleteJob}
@@ -298,107 +348,107 @@ const JobView = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  header: {
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  image: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
-  },
-  noImageContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
-    backgroundColor: "#ddd",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  noImageText: {
-    color: "#888",
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginVertical: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#666",
-  },
-  statusBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    marginVertical: 8,
-  },
-  statusText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  detailsCard: {
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 1,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  detailLabel: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginLeft: 8,
-  },
-  detail: {
-    fontSize: 16,
-    color: "#333",
-  },
-  actionContainer: {
-    marginTop: 16,
-  },
-  actionButton: {
-    backgroundColor: "#007bff",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  actionButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  imagePreviewContainer: {
-    marginVertical: 16,
-    alignItems: "center",
-  },
-  imagePreview: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
-  },
-  loading: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  error: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    color: "red",
-  },
-});
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//     padding: 16,
+//   },
+//   header: {
+//     alignItems: "center",
+//     marginBottom: 16,
+//   },
+//   image: {
+//     width: 100,
+//     height: 100,
+//     borderRadius: 8,
+//   },
+//   noImageContainer: {
+//     width: 100,
+//     height: 100,
+//     borderRadius: 8,
+//     backgroundColor: "#ddd",
+//     justifyContent: "center",
+//     alignItems: "center",
+//   },
+//   noImageText: {
+//     color: "#888",
+//   },
+//   title: {
+//     fontSize: 18,
+//     fontWeight: "bold",
+//     marginVertical: 8,
+//   },
+//   subtitle: {
+//     fontSize: 16,
+//     color: "#666",
+//   },
+//   statusBadge: {
+//     paddingVertical: 4,
+//     paddingHorizontal: 8,
+//     borderRadius: 12,
+//     marginVertical: 8,
+//   },
+//   statusText: {
+//     color: "#fff",
+//     fontWeight: "bold",
+//   },
+//   detailsCard: {
+//     backgroundColor: "#fff",
+//     padding: 16,
+//     borderRadius: 8,
+//     shadowColor: "#000",
+//     shadowOffset: { width: 0, height: 2 },
+//     shadowOpacity: 0.1,
+//     shadowRadius: 8,
+//     elevation: 1,
+//   },
+//   row: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     marginBottom: 8,
+//   },
+//   detailLabel: {
+//     fontSize: 16,
+//     fontWeight: "bold",
+//     marginLeft: 8,
+//   },
+//   detail: {
+//     fontSize: 16,
+//     color: "#333",
+//   },
+//   actionContainer: {
+//     marginTop: 16,
+//   },
+//   actionButton: {
+//     backgroundColor: "#007bff",
+//     padding: 12,
+//     borderRadius: 8,
+//     alignItems: "center",
+//     marginBottom: 8,
+//   },
+//   actionButtonText: {
+//     color: "#fff",
+//     fontWeight: "bold",
+//   },
+//   imagePreviewContainer: {
+//     marginVertical: 16,
+//     alignItems: "center",
+//   },
+//   imagePreview: {
+//     width: 100,
+//     height: 100,
+//     borderRadius: 8,
+//   },
+//   loading: {
+//     flex: 1,
+//     justifyContent: "center",
+//   },
+//   error: {
+//     flex: 1,
+//     justifyContent: "center",
+//     alignItems: "center",
+//     color: "red",
+//   },
+// });
 
 export default JobView;

@@ -8,16 +8,21 @@ import BottomTabs from './app/navigation/BottomTabs'; // Import BottomTabs
 import JobDetail from './app/screens/JobDetail';
 import MainList from './app/screens/MainList';
 import JobVeiw from './app/screens/JobVeiw';
+import PendingList from './app/screens/PendingList';
+import Toast from 'react-native-toast-message';
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
-    <AuthProvider>
-      <NavigationContainer>
-        <Layout />
-      </NavigationContainer>
-    </AuthProvider>
+    <>
+      <AuthProvider>
+        <NavigationContainer>
+          <Layout />
+        </NavigationContainer>
+      </AuthProvider>
+      <Toast />
+    </>
   );
 }
 
@@ -38,6 +43,7 @@ const Layout = () => {
             <Stack.Screen name="JobDetail" component={JobDetail} />
             <Stack.Screen name="JobVeiw" component={JobVeiw} />
             <Stack.Screen name="MainList" component={MainList} />
+            <Stack.Screen name="PendingList" component={PendingList} />
           </>
         ) : (
           <Stack.Screen name="Login" component={Login} />

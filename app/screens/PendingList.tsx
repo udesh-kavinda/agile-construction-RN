@@ -3,6 +3,7 @@ import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, 
 import Icon from 'react-native-vector-icons/MaterialIcons'; // Import an icon library (e.g., MaterialIcons)
 import { useAuth } from '../context/AuthContext'; // Import useAuth hook
 import PendingListItem from '../components/PendingListItem'; // Adjust import path as needed
+import { useFocusEffect } from '@react-navigation/native';
 
 // Build URL with query parameters
 const buildUrl = ({ status, progress }) => {
@@ -104,6 +105,12 @@ const PendingList = () => {
       <Icon name="inbox" size={50} color="#cccccc" />
       <Text style={styles.noDataText}>No Data Available</Text>
     </View>
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      onRefresh();
+    }, [])
   );
 
   return (

@@ -8,6 +8,8 @@ import {
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext'; // Import useAuth hook
+import { useFocusEffect } from '@react-navigation/native';
+
 
 const buildUrl = ({ status, progress, page, size }) => {
   const queryParams = new URLSearchParams({
@@ -18,6 +20,8 @@ const buildUrl = ({ status, progress, page, size }) => {
   }).toString();
   return `http://192.168.8.111:8080/api/employee/job?${queryParams}`; // Replace with your local IP address
 };
+
+import { Text } from 'react-native'; // Add this import
 
 const MyList = () => {
   const [loading, setLoading] = useState(false);
@@ -70,13 +74,13 @@ const MyList = () => {
     fetchPage(buildUrl({ status: 'ACTIVE', progress: 'NEW', page: 0, size: 50 }));
   };
 
-  useEffect(() => {
-    fetchPage(buildUrl({ status: 'ACTIVE', progress: 'NEW', page: 0, size: 50 }));
+  const handleItemAssigned = useCallback(() => {
+    onRefresh();
   }, []);
 
   const renderItem = useCallback(
-    ({ item }) => <ListItem Item={item} />,
-    []
+    ({ item }) => <ListItem Item={item} onAssign={handleItemAssigned} />,
+    [handleItemAssigned]
   );
 
   const itemHeight = width + 40;
@@ -97,12 +101,22 @@ const MyList = () => {
     },
   ]);
 
+  useFocusEffect(
+    useCallback(() => {
+      onRefresh();
+    }, [])
+  );
+
   if (items.length === 0 && !loading) {
-    return <ActivityIndicator size="large" color="#0000ff" />;
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>No data available</Text>
+      </View>
+    );
   }
 
   return (
-    <View>
+    <View style={{ flex: 1 }}>
       <FlatList
         data={items}
         renderItem={renderItem}
