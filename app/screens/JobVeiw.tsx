@@ -18,6 +18,7 @@ import * as FileSystem from "expo-file-system";
 import { styles } from "../screens/JobViewStyles";
 import Toast from 'react-native-toast-message';
 import { API_BASE_URL } from '../config';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 const JobView = () => {
   const route = useRoute();
@@ -109,6 +110,7 @@ const JobView = () => {
         });
 
         console.log("FormData:", formData);
+        console.log("API URL:", `${API_BASE_URL}/api/employee/job/done/${jobId}`);
 
         const response = await axios.put(
           `${API_BASE_URL}/api/employee/job/done/${jobId}`,
@@ -118,8 +120,9 @@ const JobView = () => {
               "Content-Type": "multipart/form-data",
             },
             transformRequest: (data, headers) => {
-              return formData; // Return the FormData object directly
+              return formData;
             },
+            timeout: 30000, // 30 seconds
           }
         );
 
@@ -135,6 +138,14 @@ const JobView = () => {
         });
       } catch (err) {
         console.error("Error completing job with image:", err);
+        if (axios.isAxiosError(err)) {
+          console.error("Axios error details:", {
+            message: err.message,
+            code: err.code,
+            config: err.config,
+            response: err.response?.data
+          });
+        }
         Toast.show({
           type: 'error',
           text1: 'Error',
@@ -167,9 +178,7 @@ const JobView = () => {
     }
   };
 
-  // Function to handle image selection from the gallery
   const selectImage = async () => {
-    // Request permission to access the gallery
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
       Alert.alert(
@@ -179,24 +188,52 @@ const JobView = () => {
       return;
     }
 
-    // Launch image picker
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       quality: 1,
     });
 
+    handleImageResult(result);
+  };
+
+  const captureImage = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission Required",
+        "Sorry, we need camera permissions to make this work!"
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      quality: 1,
+    });
+
+    handleImageResult(result);
+  };
+
+  const compressImage = async (uri: string) => {
+    const result = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: 1000 } }],
+      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+    );
+    return result;
+  };
+
+  const handleImageResult = async (result: ImagePicker.ImagePickerResult) => {
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const selectedAsset = result.assets[0];
-
-      // Log the selected image data for debugging
-      console.log("Selected Image:", selectedAsset);
-      setselectedAsset(selectedAsset);
-
+      const compressedImage = await compressImage(selectedAsset.uri);
+      console.log("Compressed Image:", compressedImage);
+      setselectedAsset(compressedImage);
       setSelectedImage({
-        uri: selectedAsset.uri,
+        uri: compressedImage.uri,
         type: "image/jpeg",
-        name: selectedAsset.uri.split("/").pop() || "photo.jpg",
+        name: compressedImage.uri.split("/").pop() || "photo.jpg",
       });
     }
   };
@@ -318,9 +355,14 @@ const JobView = () => {
           </TouchableOpacity>
         )}
       {job.progress === "PROCESSING" && job.creationType === "NEW" && (
-          <TouchableOpacity style={styles.actionButton} onPress={selectImage}>
-            <Text style={styles.actionButtonText}>Upload Image</Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity style={styles.actionButton} onPress={selectImage}>
+              <Text style={styles.actionButtonText}>Choose from Gallery</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionButton} onPress={captureImage}>
+              <Text style={styles.actionButtonText}>Take Photo</Text>
+            </TouchableOpacity>
+          </>
         )}
 
         {selectedImage && (
